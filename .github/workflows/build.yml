@@ -13,14 +13,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # 1. Checkout the main repository into a subfolder 'chandling'
+      # 1. Checkout the main repository into 'chandling' subfolder
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           path: chandling
 
       # 2. Checkout the dependency plugin-sdk to a sibling directory 'plugin-sdk'
-      # This structure (../plugin-sdk) is standard for SA:MP plugins using DK22Pac's SDK.
+      # The project expects this folder layout
       - name: Checkout plugin-sdk
         uses: actions/checkout@v4
         with:
@@ -32,18 +32,21 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       # 4. Install libcurl using vcpkg
-      # The project requires libcurl. We install the 32-bit (x86) version.
+      # Installs the 32-bit (x86) version required for SA:MP plugins
       - name: Install Dependencies
         run: |
           vcpkg install curl:x86-windows
           vcpkg integrate install
 
       # 5. Build the solution
-      # Changed Platform to 'x86' to match the Solution Configuration.
-      # Added Vcpkg flags to ensure the project finds the installed curl library.
+      # Adjustments made:
+      # /p:Platform=x86                    -> Matches the solution's configuration name
+      # /p:WindowsTargetPlatformVersion=10.0 -> Retargets to the latest Windows 10/11 SDK installed on the runner
+      # /p:PlatformToolset=v143            -> Retargets to the VS 2022 compiler (preventing "toolset not found" errors)
+      # /p:VcpkgEnabled=true               -> Ensures vcpkg libraries are linked
       - name: Build Solution
         working-directory: chandling
-        run: msbuild chandling.sln /p:Configuration=Release /p:Platform=x86 /p:VcpkgEnabled=true /p:VcpkgTriplet=x86-windows
+        run: msbuild chandling.sln /p:Configuration=Release /p:Platform=x86 /p:VcpkgEnabled=true /p:VcpkgTriplet=x86-windows /p:WindowsTargetPlatformVersion=10.0 /p:PlatformToolset=v143
 
       # 6. Upload the compiled .asi file
       - name: Upload Artifact
