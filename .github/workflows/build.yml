@@ -1,0 +1,55 @@
+name: Build CHandling
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compile Release (x86)
+    runs-on: windows-latest
+
+    steps:
+      # 1. Checkout the main repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          path: chandling
+
+      # 2. Checkout the dependency plugin-sdk to a sibling directory
+      # The README credits DK22Pac's plugin-sdk, and it's standard for SA:MP plugins
+      # to expect this folder at ../plugin-sdk
+      - name: Checkout plugin-sdk
+        uses: actions/checkout@v4
+        with:
+          repository: DK22Pac/plugin-sdk
+          path: plugin-sdk
+
+      # 3. Setup MSBuild
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      # 4. Install libcurl using vcpkg
+      # The README states the plugin uses libcurl.
+      # We install the x86-windows triplet because SA:MP plugins are 32-bit.
+      - name: Install Dependencies
+        run: |
+          vcpkg install curl:x86-windows
+          vcpkg integrate install
+
+      # 5. Build the solution
+      # We explicitly enable Vcpkg and set the triplet to ensure the project picks up the libraries.
+      - name: Build Solution
+        working-directory: chandling
+        run: msbuild chandling.sln /p:Configuration=Release /p:Platform=Win32 /p:VcpkgEnabled=true /p:VcpkgTriplet=x86-windows
+
+      # 6. Upload the artifact (the compiled .asi file)
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chandling-asi
+          path: chandling/**/Release/*.asi
+          if-no-files-found: warn
