@@ -13,15 +13,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # 1. Checkout the main repository
+      # 1. Checkout the main repository into a subfolder 'chandling'
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           path: chandling
 
-      # 2. Checkout the dependency plugin-sdk to a sibling directory
-      # The README credits DK22Pac's plugin-sdk, and it's standard for SA:MP plugins
-      # to expect this folder at ../plugin-sdk
+      # 2. Checkout the dependency plugin-sdk to a sibling directory 'plugin-sdk'
+      # This structure (../plugin-sdk) is standard for SA:MP plugins using DK22Pac's SDK.
       - name: Checkout plugin-sdk
         uses: actions/checkout@v4
         with:
@@ -33,20 +32,20 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       # 4. Install libcurl using vcpkg
-      # The README states the plugin uses libcurl.
-      # We install the x86-windows triplet because SA:MP plugins are 32-bit.
+      # The project requires libcurl. We install the 32-bit (x86) version.
       - name: Install Dependencies
         run: |
           vcpkg install curl:x86-windows
           vcpkg integrate install
 
       # 5. Build the solution
-      # We explicitly enable Vcpkg and set the triplet to ensure the project picks up the libraries.
+      # Changed Platform to 'x86' to match the Solution Configuration.
+      # Added Vcpkg flags to ensure the project finds the installed curl library.
       - name: Build Solution
         working-directory: chandling
-        run: msbuild chandling.sln /p:Configuration=Release /p:Platform=Win32 /p:VcpkgEnabled=true /p:VcpkgTriplet=x86-windows
+        run: msbuild chandling.sln /p:Configuration=Release /p:Platform=x86 /p:VcpkgEnabled=true /p:VcpkgTriplet=x86-windows
 
-      # 6. Upload the artifact (the compiled .asi file)
+      # 6. Upload the compiled .asi file
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
