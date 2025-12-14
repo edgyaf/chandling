@@ -20,7 +20,7 @@ jobs:
           path: chandling
 
       # 2. Checkout the dependency plugin-sdk to a sibling directory 'plugin-sdk'
-      # The project expects this folder layout
+      # Required structure for the project to find the SDK
       - name: Checkout plugin-sdk
         uses: actions/checkout@v4
         with:
@@ -39,14 +39,15 @@ jobs:
           vcpkg integrate install
 
       # 5. Build the solution
-      # Adjustments made:
-      # /p:Platform=x86                    -> Matches the solution's configuration name
-      # /p:WindowsTargetPlatformVersion=10.0 -> Retargets to the latest Windows 10/11 SDK installed on the runner
-      # /p:PlatformToolset=v143            -> Retargets to the VS 2022 compiler (preventing "toolset not found" errors)
-      # /p:VcpkgEnabled=true               -> Ensures vcpkg libraries are linked
+      # Flags explanation:
+      # /p:Platform=x86                    : Matches the solution configuration
+      # /p:WindowsTargetPlatformVersion=10.0 : Uses the installed Windows 10/11 SDK
+      # /p:PlatformToolset=v143            : Uses the VS 2022 compiler
+      # /p:LanguageStandard=stdcpp14       : Downgrades to C++14 to support std::binary_function (removed in C++17)
+      # /p:VcpkgEnabled=true               : Links vcpkg libraries
       - name: Build Solution
         working-directory: chandling
-        run: msbuild chandling.sln /p:Configuration=Release /p:Platform=x86 /p:VcpkgEnabled=true /p:VcpkgTriplet=x86-windows /p:WindowsTargetPlatformVersion=10.0 /p:PlatformToolset=v143
+        run: msbuild chandling.sln /p:Configuration=Release /p:Platform=x86 /p:VcpkgEnabled=true /p:VcpkgTriplet=x86-windows /p:WindowsTargetPlatformVersion=10.0 /p:PlatformToolset=v143 /p:LanguageStandard=stdcpp14
 
       # 6. Upload the compiled .asi file
       - name: Upload Artifact
